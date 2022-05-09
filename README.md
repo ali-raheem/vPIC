@@ -6,10 +6,13 @@ Currently emulates the 12F508, all 33 instructions decoded, almost all instructi
 
 Here it is running:
 ```
-MOVLW 170
-MOVWF 10
-NOP
-NOP
+MOVLW 170    ; Put 170 in W
+MOVWF 10     ; Move the contents of W to F 10
+INCF 12, F   ; Increase the value of F 12
+SWAPF 12, W  ; Swap nibbles of F 12 and place in W
+MOVLW 16     ; Put 16 in W
+MOVWF FSR    ; Put the contents of W in the File Select Register
+INCF INDF, F ; Increase the value of the indirect file and store in the file
 ```
 Output:
 ```

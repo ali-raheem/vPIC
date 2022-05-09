@@ -81,7 +81,7 @@ fn (mut m Mcu) set_file(f u16, v u8) {
 			m.set_tmr0(v)
 		}
 		indf  {
-			m.set_file(u16(m.ram[fsr]), v)
+			m.set_file(u16(m.get_file(fsr)), v)
 		}
 		else {
 			m.ram[f] = v
@@ -140,7 +140,7 @@ fn (mut m Mcu) clock() {
 }
 
 pub fn (m Mcu) str () string {
-	return 'OPCODE: $m.opcode\nPC: $m.pc\nW: $m.w\nRAM: $m.ram'
+	return 'OPCODE: 0b${m.opcode:012b}\nPC: $m.pc\nW: $m.w\nRAM: $m.ram'
 }
 
 pub fn (mut m Mcu) cycle () {
@@ -265,7 +265,8 @@ fn (mut m Mcu) execute () {
 							if (m.opcode >> 9) == 5 {
 								m.op_goto(u16(m.opcode & 0b1_1111_1111))
 							} else {
-								println('Illegal opcode $m.opcode!')
+								println('# Illegal opcode!')
+								println(*m)
 								exit(-1)
 							}
 						}

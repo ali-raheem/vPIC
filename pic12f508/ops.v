@@ -1,14 +1,16 @@
 module pic12f508
 
 fn (mut m Mcu) addwf (file u16, dst Destination) {
-	v := m.w + m.get_file(file)
+	f := m.get_file(file)
+	v := m.w + f
 	if dst == .w {
 		m.w = v
 	} else {
 		m.set_file(file, v)
 	}
 	m.set_z(v == 0)
-	// check DC and C
+	m.set_c((u16(f) + u16(m.w)) > 255)
+	m.set_dc(((f & 0b1111) + (m.w & 0b1111)) > 0b1111)
 }
 
 fn (mut m Mcu) andwf (file u16, dst Destination) {
@@ -100,6 +102,7 @@ fn (mut m Mcu) movf (file u16, dst Destination) {
 fn (mut m Mcu) movwf (file u16) {
 	v := m.w
 	m.set_file(file, v)
+	println('MOVWF 0x${file:X}')
 }
 
 fn (m Mcu) nop () {
@@ -131,14 +134,16 @@ fn (mut m Mcu) rrf (file u16, dst Destination) {
 }
 
 fn (mut m Mcu) subwf (file u16, dst Destination) {
-	v := m.get_file(file) - m.w
+	f := m.get_file(file)
+	v :=  f - m.w
 	if dst == .w {
 		m.w = v
 	} else {
 		m.set_file(file, v)
 	}
 	m.set_z(v == 0)
-	// check DC and C
+	m.set_c(f < m.w)
+	m.set_dc((f & 0b1111) < (m.w & 0b1111))
 }
 
 fn (mut m Mcu) swapf (file u16, dst Destination) {

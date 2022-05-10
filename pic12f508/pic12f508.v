@@ -45,6 +45,9 @@ mut:
 	opcode u16
 }
 
+pub fn (m Mcu) get_ram(f u8) u8 {
+	return m.ram[f]
+}
 fn (mut m Mcu) set_z(x bool) {
 	if x {
 		m.ram[status] |= 1 << z
@@ -183,58 +186,60 @@ fn (mut m Mcu) execute () {
 		else {
 			f := m.opcode & 0b11111
 			mut d := Destination.f
-			if (m.opcode >> 5) & 1 != 0 {
+			op := u8(m.opcode >> 5)
+			if op & 1 != 0 {
 				d = Destination.f
 			} else {
 				d = Destination.w
 			}
-			match m.opcode >> 5 {
+			println('$op')
+			match op {
 				1 {
 					m.movwf(f)
 				}
 				3 {
 					m.clrf(f)
 				}
-				4|5 {
+				4...5 {
 					m.subwf(f, d)
 				}
-				6|7 {
+				6...7 {
 					m.decf(f, d)
 				}
-				8|9 {
+				8...9 {
 					m.iorwf(f, d)
 				}
-				10|11 {
+				10...11 {
 					m.andwf(f, d)
 				}
-				12|13 {
+				12...13 {
 					m.xorwf(f, d)
 				}
-				14|15 {
+				14...15 {
 					m.addwf(f, d)
 				}
-				16|17 {
+				16...17 {
 					m.movf(f, d)
 				}
-				18|19 {
+				18...19 {
 					m.comf(f, d)
 				}
-				20|21 {
+				20...21 {
 					m.incf(f, d)
 				}
-				22|23 {
+				22...23 {
 					m.decfsz(f, d)
 				}
-				24|25 {
+				24...25 {
 					m.rrf(f, d)
 				}
-				26|27 {
+				26...27 {
 					m.rlf(f, d)
 				}
-				28|29 {
+				28...29 {
 					m.swapf(f, d)
 				}
-				30|31 {
+				30...31 {
 					m.incfsz(f, d)
 				}
 				else {

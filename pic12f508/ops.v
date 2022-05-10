@@ -102,7 +102,6 @@ fn (mut m Mcu) movf (file u16, dst Destination) {
 fn (mut m Mcu) movwf (file u16) {
 	v := m.w
 	m.set_file(file, v)
-	println('MOVWF 0x${file:X}')
 }
 
 fn (m Mcu) nop () {

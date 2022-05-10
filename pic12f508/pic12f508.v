@@ -81,7 +81,8 @@ fn (mut m Mcu) set_file(f u16, v u8) {
 			m.set_tmr0(v)
 		}
 		indf  {
-			m.set_file(u16(m.get_file(fsr)), v)
+			ff := u16(m.get_file(fsr))
+			m.set_file(ff, v)
 		}
 		else {
 			m.ram[f] = v
@@ -89,7 +90,16 @@ fn (mut m Mcu) set_file(f u16, v u8) {
 	}
 }
 fn (mut m Mcu) get_file(f u16) u8 {
-	return m.ram[f]
+	match f {
+		indf {
+			ff := u16(m.get_file(fsr))
+			return m.get_file(ff)
+		}
+		else {
+			return m.ram[f]
+		}
+	}
+
 }
 fn (mut m Mcu) inc_pc() {
 	m.pc++

@@ -1,7 +1,7 @@
 Module {
 	name: 'vPIC'
 	description: 'Emulator for Microchip PIC microcontrollers'
-	version: '0.0.2'
+	version: 'alpha'
 	license: 'MIT'
 	dependencies: []
 }

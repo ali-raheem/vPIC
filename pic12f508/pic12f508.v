@@ -80,7 +80,7 @@ pub fn (mut m Mcu) init(config_word u16) {
 }
 
 pub fn (mut m Mcu) flash(prog []u8) {
-	len := 512//min(flash_size, prog.len)
+	len := if prog.len < flash_size { prog.len } else { flash_size }
 	for i in 0 .. len/2 {
 		m.flash[i] = u16(prog[2 * i]) | (u16(prog[2 * i + 1]) << 8)
 	}

@@ -17,9 +17,9 @@ MOVWF 10
 MOVF 12, W
 GOTO 1
 ```
-After 88 cycles the state is (generating the fibbonachi sequence)
+After 87 cycles the state is (generating the fibbonachi sequence)
 ```
-ali@peanut:~/Code/vPIC$ v run .
+ali@peanut:~/Code/vPIC$ v run . --bin fib.bin -c 87
 OPCODE: 0b000000101100
 PC: 6
 W: 233

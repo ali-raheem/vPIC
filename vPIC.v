@@ -10,10 +10,16 @@ fn main() {
 	fp.version('v0.0.1')
 	fp.description('A Microchip PIC emulator')
 	fp.skip_executable()
+	fp.usage_example('--bin fib.b --cycles 87')
 
 	binary_file := fp.string('bin', `b`, '', 'A binary file')
 	cycles := fp.int('cycles', `c`, 512, 'How many instruction cycles to run for')
+	help := fp.bool('help', `h`, false, 'Print this help')
 
+	if help {
+		println(fp.usage())
+		return
+	}
 	data := os.read_file(binary_file) or {
 		panic('Could not read binary file')
 		return

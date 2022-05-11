@@ -137,6 +137,10 @@ fn (mut m Mcu) set_file(f u16, v u8) {
 			ff := u16(m.get_file(pic12f508.fsr))
 			m.set_file(ff, v)
 		}
+		pic12f508.gpio {
+			p := v & 0b0011_0111
+			m.ram[gpio] = p
+		}
 		else {
 			m.ram[f] = v
 		}
@@ -148,6 +152,11 @@ fn (mut m Mcu) get_file(f u16) u8 {
 		pic12f508.indf {
 			ff := u16(m.get_file(pic12f508.fsr))
 			return m.get_file(ff)
+		}
+		pic12f508.gpio {
+			// p (FLOATS & ram[gpio]) | HIGHS
+			p := m.ram[gpio] & 0b0011_1111
+			return p
 		}
 		else {
 			return m.ram[f]

@@ -11,11 +11,24 @@ const (
 	gpio = 6
 // bits
 // status
+	pa = 5
 	z = 2
 	dc = 1
 	c = 0
+// option
+	gpwu = 7
+	gppu = 6
+	t0cs = 5
+	t0se = 4
+	psa = 3
+	ps2 = 2
+	ps1 = 1
+	ps0 = 0
 // parameters
 	stack_depth = 2
+	io_pins = 6
+	flash_size = 512
+	ram_size =25
 )
 
 enum CycleState {
@@ -30,11 +43,16 @@ enum Destination {
 	f
 }
 
+pub enum PinStates {
+	low
+	high
+	float
+}
 pub struct Mcu {
 pub mut:
-	flash [512]u16
+	flash [flash_size]u16
 mut:
-	ram [25]u8
+	ram [ram_size]u8
 	state CycleState = .fetch
 	w u8
 	pc u16
@@ -43,8 +61,15 @@ mut:
 	stack [stack_depth]u16
 	sleeping bool
 	opcode u16
+	inputs [io_pins]PinStates
+	wdt u16
+	option u8
+	tris u8
 }
 
+fn (m Mcu) get_bit(f u8, b u8) bool{
+	return (m.get_ram(f) & (1 << b)) != 0
+}
 pub fn (m Mcu) get_ram(f u8) u8 {
 	return m.ram[f]
 }
@@ -119,22 +144,26 @@ fn (mut m Mcu) set_tmr0(v u8) {
 	m.ram[tmr0] = v
 	m.timer_lockout = 2
 }
-fn (mut m Mcu) inc_tmr0(v u8) {
-	if m.timer_lockout == 0 {
-		m.ram[tmr0]++
-	}
+fn (mut m Mcu) inc_tmr0() {
+	m.ram[tmr0]++
 }
 fn (mut m Mcu) update_pcl() {
+	m.pc %= flash_size
 	m.ram[pcl] = u8(m.pc)
 }
 fn (mut m Mcu) clock() {
 	match m.state {
 		.fetch {
+			if m.sleeping {
+				// check for wake up condition
+				return
+			}
 			m.opcode = m.flash[m.pc]
-			if m.timer_lockout > 2 {
+			if m.timer_lockout > 0 {
 				m.timer_lockout--
 			} else {
-				// ? m.tmr0_inc()
+				// if not external clock
+				m.inc_tmr0()
 			}
 			m.state = .decode
 		}
@@ -177,7 +206,7 @@ fn (mut m Mcu) execute () {
 		4 {
 			m.clrwdt()
 		}
-		6 | 7 {
+		6 ... 7 {
 			m.tris()
 		}
 		64 {

@@ -202,14 +202,22 @@ fn (mut m Mcu) call (f u8) {
 	m.stack[m.sp] = m.pc + 1
 	m.sp++
 	m.sp = m.sp % stack_depth
-	m.set_pc(u16(f) | (u16((m.ram[status] & 0b1100000) << 4)))
+
+	mut pc := u16(f)
+	pc |= u16(m.ram[status] & 0b1100000) << 4
+	pc &= ~(1 << 9)
+	m.set_pc(pc)
+//	m.set_pc(u16(f) | (u16((m.ram[status] & 0b1100000) << 4)))
 }
 
 fn (mut m Mcu) clrwdt () {
+	m.wdt = 0
 }
 
-fn (mut m Mcu) op_goto (f u16) {
-	m.set_pc((f & 0b111111111) | (u16((m.ram[status] & 0b1100000) << 4)))
+fn (mut m Mcu) op_goto (k u16) {
+/* 	mut pc := m.get_bit(status, pa) << 5
+	pc |= (k & 0b111111111) */
+	m.set_pc((k & 0b111111111) | (u16((m.ram[status] & 0b1100000) << 4)))
 }
 
 fn (mut m Mcu) iorlw (l u8) {
@@ -222,6 +230,7 @@ fn (mut m Mcu) movlw (l u8) {
 }
 
 fn (mut m Mcu) option () {
+	m.option = m.w
 }
 
 fn (mut m Mcu) retlw (l u8) {
@@ -236,7 +245,7 @@ fn (mut m Mcu) sleep () {
 }
 
 fn (mut m Mcu) tris () {
-
+	m.tris = m.w
 }
 
 fn (mut m Mcu) xorlw (l u8) {

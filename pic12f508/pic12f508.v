@@ -24,6 +24,8 @@ const (
 	ps2 = 2
 	ps1 = 1
 	ps0 = 0
+)
+pub const (
 // parameters
 	stack_depth = 2
 	io_pins = 6
@@ -75,6 +77,13 @@ pub fn (mut m Mcu) init(config_word u16) {
 	m.set_file(fsr, 0b11100000)
 	m.set_file(osccal, 0b11111110)
 	m.set_pc(flash_size - 1)
+}
+
+pub fn (mut m Mcu) flash(prog []u8) {
+	len := 512//min(flash_size, prog.len)
+	for i in 0 .. len/2 {
+		m.flash[i] = u16(prog[2 * i]) | (u16(prog[2 * i + 1]) << 8)
+	}
 }
 
 fn (m Mcu) get_bit(f u8, b u8) bool{

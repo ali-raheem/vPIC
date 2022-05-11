@@ -65,6 +65,16 @@ mut:
 	wdt u16
 	option u8
 	tris u8
+	config u16
+}
+
+pub fn (mut m Mcu) init(config_word u16) {
+	m.config = c & 0b11111
+	m.option = 0b1111_1111
+	m.set_file(status, 0b000110000)
+	m.set_file(fsr, 0b11100000)
+	m.set_file(osccal, 0b11111110)
+	m.set_pc(flash_size - 1)
 }
 
 fn (m Mcu) get_bit(f u8, b u8) bool{
@@ -221,7 +231,6 @@ fn (mut m Mcu) execute () {
 			} else {
 				d = Destination.w
 			}
-			println('$op')
 			match op {
 				1 {
 					m.movwf(f)

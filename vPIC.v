@@ -3,6 +3,7 @@ import pic12f508
 
 fn main() {
 	mut pic := pic12f508.Mcu{}
+	pic.init(0)
 	pic.flash[0] = u16(12 << 8) | 1		// MOVLW 1
 	pic.flash[1] = u16(01 << 5) | 10	// MOVWF 10
 	pic.flash[2] = u16(01 << 5) | 11	// MOVWF 11
@@ -13,9 +14,8 @@ fn main() {
 	pic.flash[7] = u16(01 << 5) | 10	// MOVWF 10
 	pic.flash[8] = u16(16 << 5) | 12	// MOVF 12, W
 	pic.flash[9] = u16(5 << 9) | 1		// GOTO 1
-	for _ in 0 .. 100 {
+	for _ in 0 .. 87 {
 		pic.cycle()
-		println(pic)
 	}
-
+	println(pic)
 }

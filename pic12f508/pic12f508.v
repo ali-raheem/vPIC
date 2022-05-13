@@ -48,7 +48,7 @@ enum Destination {
 	f
 }
 
-pub enum PinStates {
+pub enum PinState {
 	low
 	high
 	float
@@ -67,7 +67,7 @@ mut:
 	stack         [stack_depth]u16
 	sleeping      bool
 	opcode        u16
-	inputs        [io_pins]PinStates
+	inputs        [io_pins]PinState
 	wdt           u16
 	option        u8
 	tris          u8
@@ -77,7 +77,8 @@ mut:
 pub fn (mut m Mcu) init(config_word u16) {
 	m.config = pic12f508.c & 0b11111
 	m.option = 0b1111_1111
-	m.set_file(pic12f508.status, 0b0011_0000)
+	m.tris = 0b0011_1111
+	m.set_file(pic12f508.status, 0b0001_1000)
 	m.set_file(pic12f508.fsr, 0b1110_0000)
 	m.set_file(pic12f508.osccal, 0b1111_1110)
 	m.set_pc(pic12f508.flash_size - 1)
@@ -90,6 +91,35 @@ pub fn (mut m Mcu) flash(prog []u8) {
 	}
 }
 
+pub fn (mut m Mcu) input(p [io_pins]PinState) {
+	for i, x in p {
+		m.inputs[i] = x
+	}
+}
+fn (m Mcu) get_pin_by_state(state PinState) u8 {
+	mut gpio_state := u8(0)
+	for p in m.inputs[..].map(it == state) {
+		gpio_state <<= 1
+		if p {
+			gpio_state |= 1
+		}
+	}
+	return gpio_state
+}
+pub fn (m Mcu) get_float() u8 {
+	return m.get_pin_by_state(.float)
+}
+pub fn (m Mcu) get_high() u8 {
+	return m.get_pin_by_state(.high)
+}
+pub fn (m Mcu) get_low() u8 {
+	return m.get_pin_by_state(.low)
+}
+gn (m Mcu) get_gpio() u8 {
+	p := ((m.get_float() & m.ram[pic12f508.gpio]) | m.get_high())
+	return p & 0b0011_1111
+
+}
 fn (m Mcu) get_bit(f u8, b u8) bool {
 	return (m.get_ram(f) & (1 << b)) != 0
 }
@@ -139,7 +169,7 @@ fn (mut m Mcu) set_file(f u16, v u8) {
 		}
 		pic12f508.gpio {
 			p := v & 0b0011_0111
-			m.ram[gpio] = p
+			m.ram[pic12f508.gpio] = p
 		}
 		else {
 			m.ram[f] = v
@@ -154,9 +184,7 @@ fn (mut m Mcu) get_file(f u16) u8 {
 			return m.get_file(ff)
 		}
 		pic12f508.gpio {
-			// p (FLOATS & ram[gpio]) | HIGHS
-			p := m.ram[gpio] & 0b0011_1111
-			return p
+			return get_gpio()
 		}
 		else {
 			return m.ram[f]

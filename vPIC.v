@@ -7,8 +7,8 @@ import pic12f508
 fn main() {
 	mut fp := flag.new_flag_parser(os.args)
 	fp.application('vPIC')
-	fp.version('v0.0.1')
-	fp.description('A Microchip PIC emulator')
+	fp.version('alpha')
+	fp.description('A Microchip PIC emulator\nSupported PICs:\n* 12F508')
 	fp.skip_executable()
 	fp.usage_example('--bin fib.b --cycles 87')
 

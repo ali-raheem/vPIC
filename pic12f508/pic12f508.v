@@ -102,7 +102,6 @@ pub fn (mut m Mcu) init(config_word u16) {
 	m.set_file(pic12f508.fsr, 0b1110_0000)
 	m.set_file(pic12f508.osccal, 0b1111_1110)
 	m.set_pc(pic12f508.flash_size - 1)
-	println('$pic12f508.io_pins')
 }
 
 pub fn (mut m Mcu) flash(prog []u8) {
@@ -124,28 +123,27 @@ fn (mut m Mcu) clock() {
 				}
 			}
 			m.opcode = m.flash[m.pc]
+			/*
 			if m.timer_lockout > 0 {
 				m.timer_lockout--
-			} else if !m.get_option(pic12f508.t0cs) {
-				if m.get_option(pic12f508.t0cs) {
-					match m.transitions[pic12f508.t0cki] {
-						.nil {
-							// pass
-						}
-						.posedge {
-							if !m.get_option(pic12f508.t0se) {
-								m.inc_tmr0()
-							}
-						}
-						.negedge {
-							if m.get_option(pic12f508.t0se) {
-								m.inc_tmr0()
-							}
+			} else
+			*/
+			if !m.get_option(pic12f508.t0cs) {
+				match m.transitions[pic12f508.t0cki] {
+					.nil {}
+					.posedge {
+						if !m.get_option(pic12f508.t0se) {
+							m.inc_tmr0()
 						}
 					}
-				} else {
-					m.inc_tmr0()
+					.negedge {
+						if m.get_option(pic12f508.t0se) {
+							m.inc_tmr0()
+						}
+					}
 				}
+			} else {
+				m.inc_tmr0()
 			}
 			m.state = .decode
 		}

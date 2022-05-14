@@ -29,9 +29,11 @@ fn main() {
 	pic.flash(data.bytes())
 	pic.init(0)
 
-	go_low := [pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.low, pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.float]
-	go_high := [pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.high, pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.float]
-	for _ in 0 .. cycles/2 {
+	go_low := [pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.low,
+		pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.float]
+	go_high := [pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.high,
+		pic12f508.PinState.float, pic12f508.PinState.float, pic12f508.PinState.float]
+	for _ in 0 .. cycles / 2 {
 		pic.input(go_high)
 		pic.cycle()
 		pic.input(go_low)

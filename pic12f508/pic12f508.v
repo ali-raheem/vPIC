@@ -26,6 +26,15 @@ const (
 	ps2    = 2
 	ps1    = 1
 	ps0    = 0
+
+	// pin names
+	gp0 = 0
+	gp1 = 1
+	gp2 = 2
+	gp3 = 3
+	gp4 = 4
+	gp5 = 5
+	gp6 = 6
 )
 
 pub const (
@@ -49,9 +58,15 @@ enum Destination {
 }
 
 pub enum PinState {
+	float = 0
 	low
 	high
-	float
+}
+
+enum Transition {
+	nil = 0
+	posedge
+	negedge
 }
 
 pub struct Mcu {
@@ -68,6 +83,7 @@ mut:
 	sleeping      bool
 	opcode        u16
 	inputs        [io_pins]PinState
+	transitions  [io_pins]Transition
 	wdt           u16
 	option        u8
 	tris          u8
@@ -93,6 +109,11 @@ pub fn (mut m Mcu) flash(prog []u8) {
 
 pub fn (mut m Mcu) input(p [io_pins]PinState) {
 	for i, x in p {
+		if m.inputs[i] != x {
+			m.transitions[i] = if x == .high {Transition.posedge} else {Transition.negedge}
+		} else {
+			m.transitions[i] = Transition.nil
+		}
 		m.inputs[i] = x
 	}
 }
@@ -115,7 +136,7 @@ pub fn (m Mcu) get_high() u8 {
 pub fn (m Mcu) get_low() u8 {
 	return m.get_pin_by_state(.low)
 }
-gn (m Mcu) get_gpio() u8 {
+fn (m Mcu) get_gpio() u8 {
 	p := ((m.get_float() & m.ram[pic12f508.gpio]) | m.get_high())
 	return p & 0b0011_1111
 
@@ -184,7 +205,7 @@ fn (mut m Mcu) get_file(f u16) u8 {
 			return m.get_file(ff)
 		}
 		pic12f508.gpio {
-			return get_gpio()
+			return m.get_gpio()
 		}
 		else {
 			return m.ram[f]
@@ -220,6 +241,10 @@ fn (mut m Mcu) update_pcl() {
 	m.ram[pic12f508.pcl] = u8(m.pc)
 }
 
+fn (m Mcu) get_option(bit u8) bool {
+	return (m.option & (1 << bit) != 0)
+}
+
 fn (mut m Mcu) clock() {
 	match m.state {
 		.fetch {
@@ -231,7 +256,26 @@ fn (mut m Mcu) clock() {
 			if m.timer_lockout > 0 {
 				m.timer_lockout--
 			} else if (m.option & (1 << pic12f508.t0cs)) == 0 {
-				m.inc_tmr0()
+				// Check if timer then
+				if m.get_option(t0cs) {
+					match m.transitions[gp2] {
+						.nil {
+							// pass
+						}
+						.posedge {
+							if !m.get_option(t0se) {
+								m.inc_tmr0()
+							}
+						}
+						.negedge {
+							if m.get_option(t0se) {
+								m.inc_tmr0()
+							}
+						}
+					}
+				} else {
+					m.inc_tmr0()
+				}
 			}
 			m.state = .decode
 		}
@@ -245,6 +289,9 @@ fn (mut m Mcu) clock() {
 		.flush {
 			m.inc_pc()
 			m.state = .fetch
+			for i, _ in m.transitions[..] {
+				m.transitions[i] = Transition.nil
+			}
 		}
 	}
 }

@@ -25,9 +25,3 @@ PC: 6
 W: 233
 RAM: [0, 87, 6, 49, 224, 254, 0, 0, 0, 0, 89, 144, 233, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ```
-
-## TODO
-* Config word
-* External TMR0, WDT if ever
-* Loads of testing (branches not fully tested)
-* GPIO etc not done

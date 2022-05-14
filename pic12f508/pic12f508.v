@@ -34,7 +34,7 @@ const (
 	gp3 = 3
 	gp4 = 4
 	gp5 = 5
-	gp6 = 6
+	t0cki = 2
 )
 
 pub const (
@@ -98,118 +98,13 @@ pub fn (mut m Mcu) init(config_word u16) {
 	m.set_file(pic12f508.fsr, 0b1110_0000)
 	m.set_file(pic12f508.osccal, 0b1111_1110)
 	m.set_pc(pic12f508.flash_size - 1)
+	println('$io_pins')
 }
 
 pub fn (mut m Mcu) flash(prog []u8) {
 	len := if prog.len < pic12f508.flash_size { prog.len } else { pic12f508.flash_size }
 	for i in 0 .. len / 2 {
 		m.flash[i] = u16(prog[2 * i]) | (u16(prog[2 * i + 1]) << 8)
-	}
-}
-
-pub fn (mut m Mcu) input(p [io_pins]PinState) {
-	for i, x in p {
-		if m.inputs[i] != x {
-			m.transitions[i] = if x == .high {Transition.posedge} else {Transition.negedge}
-		} else {
-			m.transitions[i] = Transition.nil
-		}
-		m.inputs[i] = x
-	}
-}
-fn (m Mcu) get_pin_by_state(state PinState) u8 {
-	mut gpio_state := u8(0)
-	for p in m.inputs[..].map(it == state) {
-		gpio_state <<= 1
-		if p {
-			gpio_state |= 1
-		}
-	}
-	return gpio_state
-}
-pub fn (m Mcu) get_float() u8 {
-	return m.get_pin_by_state(.float)
-}
-pub fn (m Mcu) get_high() u8 {
-	return m.get_pin_by_state(.high)
-}
-pub fn (m Mcu) get_low() u8 {
-	return m.get_pin_by_state(.low)
-}
-fn (m Mcu) get_gpio() u8 {
-	p := ((m.get_float() & m.ram[pic12f508.gpio]) | m.get_high())
-	return p & 0b0011_1111
-
-}
-fn (m Mcu) get_bit(f u8, b u8) bool {
-	return (m.get_ram(f) & (1 << b)) != 0
-}
-
-pub fn (m Mcu) get_ram(f u8) u8 {
-	return m.ram[f]
-}
-
-fn (mut m Mcu) set_z(x bool) {
-	if x {
-		m.ram[pic12f508.status] |= 1 << pic12f508.z
-	} else {
-		m.ram[pic12f508.status] &= ~(1 << pic12f508.z)
-	}
-}
-
-fn (mut m Mcu) set_c(x bool) {
-	if x {
-		m.ram[pic12f508.status] |= 1 << pic12f508.c
-	} else {
-		m.ram[pic12f508.status] &= ~(1 << pic12f508.c)
-	}
-}
-
-fn (mut m Mcu) set_dc(x bool) {
-	if x {
-		m.ram[pic12f508.status] |= 1 << pic12f508.dc
-	} else {
-		m.ram[pic12f508.status] &= ~(1 << pic12f508.dc)
-	}
-}
-
-fn (mut m Mcu) set_file(f u16, v u8) {
-	match f {
-		pic12f508.pcl {
-			mut pc := m.get_pc()
-			pc &= 0b11110000
-			pc |= u16(v)
-			m.set_pc(pc)
-		}
-		pic12f508.tmr0 {
-			m.set_tmr0(v)
-		}
-		pic12f508.indf {
-			ff := u16(m.get_file(pic12f508.fsr))
-			m.set_file(ff, v)
-		}
-		pic12f508.gpio {
-			p := v & 0b0011_0111
-			m.ram[pic12f508.gpio] = p
-		}
-		else {
-			m.ram[f] = v
-		}
-	}
-}
-
-fn (mut m Mcu) get_file(f u16) u8 {
-	match f {
-		pic12f508.indf {
-			ff := u16(m.get_file(pic12f508.fsr))
-			return m.get_file(ff)
-		}
-		pic12f508.gpio {
-			return m.get_gpio()
-		}
-		else {
-			return m.ram[f]
-		}
 	}
 }
 
@@ -227,6 +122,12 @@ fn (m Mcu) get_pc() u16 {
 	return m.pc
 }
 
+fn (mut m Mcu) update_pcl() {
+	m.pc %= pic12f508.flash_size
+	m.ram[pic12f508.pcl] = u8(m.pc)
+}
+
+
 fn (mut m Mcu) set_tmr0(v u8) {
 	m.ram[pic12f508.tmr0] = v
 	m.timer_lockout = 2
@@ -236,29 +137,22 @@ fn (mut m Mcu) inc_tmr0() {
 	m.ram[pic12f508.tmr0]++
 }
 
-fn (mut m Mcu) update_pcl() {
-	m.pc %= pic12f508.flash_size
-	m.ram[pic12f508.pcl] = u8(m.pc)
-}
-
-fn (m Mcu) get_option(bit u8) bool {
-	return (m.option & (1 << bit) != 0)
-}
-
 fn (mut m Mcu) clock() {
 	match m.state {
 		.fetch {
 			if m.sleeping {
-				// check for wake up condition
-				return
+				if !(m.get_option(gpwu)) && (m.transitions[..(gp3+1)].any(it != .nil)) {
+					m.sleeping = false
+				} else {
+					return
+				}
 			}
 			m.opcode = m.flash[m.pc]
 			if m.timer_lockout > 0 {
 				m.timer_lockout--
-			} else if (m.option & (1 << pic12f508.t0cs)) == 0 {
-				// Check if timer then
+			} else if !m.get_option(t0cs) {
 				if m.get_option(t0cs) {
-					match m.transitions[gp2] {
+					match m.transitions[t0cki] {
 						.nil {
 							// pass
 						}
@@ -289,9 +183,7 @@ fn (mut m Mcu) clock() {
 		.flush {
 			m.inc_pc()
 			m.state = .fetch
-			for i, _ in m.transitions[..] {
-				m.transitions[i] = Transition.nil
-			}
+			m.clear_transitions()
 		}
 	}
 }
